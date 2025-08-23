@@ -1,0 +1,68 @@
+# config/emqx.conf - EMQX 5.x 正确格式
+
+# ====== 节点配置 ======
+node {
+  cookie = "emqxsecretcookie"
+}
+
+# ====== 集群配置 ======
+cluster {
+  autoheal = true
+  autoclean = 24h
+}
+
+# ====== 认证配置 ======
+authentication = [
+  {
+    mechanism = jwt
+    enable = true
+    
+    # JWT算法配置
+    algorithm = "public-key"
+    public_key_file = "/opt/emqx/certs/mqtt-ec256-public.pem"
+    
+    # JWT来源
+    from = password
+
+    disconnect_after_expire = true
+    
+    # 验证配置
+    # verify_claims = {
+    #   sub = required
+    # }
+  }
+]
+
+# ====== 授权配置 ======
+
+authorization {
+  no_match = deny
+  deny_action = disconnect
+}
+
+
+
+# ====== Dashboard配置 ======
+dashboard = {
+  listeners.http {
+    bind = "0.0.0.0:18083"
+  }
+  default_username = "felix"
+  default_password = "StrongP@ssw0rd2024!"
+}
+
+# ====== 监控配置 ======
+prometheus = {
+  collectors = {
+    mnesia = enabled
+    vm_dist = enabled  
+    vm_memory = enabled
+    vm_msacc = disabled
+    vm_statistics = enabled
+    vm_system_info = enabled
+  }
+  enable_basic_auth = false
+  push_gateway = {
+    enable = false
+  }
+}

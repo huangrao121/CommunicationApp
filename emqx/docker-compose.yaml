@@ -1,0 +1,83 @@
+services:
+  emqx1:
+    image: emqx/emqx:5.8.8-beta.2-elixir
+    container_name: emqx1
+    hostname: emqx1
+    restart: unless-stopped
+    networks: [emqx-network]
+
+    volumes:
+      - ./nodes/emqx1/data:/opt/emqx/data
+      - ./nodes/emqx1/log:/opt/emqx/log
+      - ./keys:/opt/emqx/certs:ro
+    
+    env_file:
+      - ./env/common.env
+
+    environment:
+      - "EMQX_NAME=emqx"
+      - "EMQX_HOST=node1.emqx.io"
+      - "EMQX_CLUSTER_DISCOVERY_STRATEGY=static"
+      - "EMQX_CLUSTER_STATIC_SEEDS=[emqx@node1.emqx.io, emqx@node2.emqx.io, emqx@node3.emqx.io]"
+    
+  emqx2:
+    image: emqx/emqx:5.8.8-beta.2-elixir
+    container_name: emqx2
+    hostname: emqx2
+    restart: unless-stopped
+    networks: [emqx-network]
+    volumes:
+      - ./nodes/emqx2/data:/opt/emqx/data
+      - ./nodes/emqx2/log:/opt/emqx/log
+      - ./keys:/opt/emqx/certs:ro
+    env_file:
+      - ./env/common.env
+    environment:
+      - "EMQX_NAME=emqx"
+      - "EMQX_HOST=node2.emqx.io"
+      - "EMQX_CLUSTER_DISCOVERY_STRATEGY=static"
+      - "EMQX_CLUSTER_STATIC_SEEDS=[emqx@node1.emqx.io, emqx@node2.emqx.io, emqx@node3.emqx.io]"
+
+
+  emqx3:
+    image: emqx/emqx:5.8.8-beta.2-elixir
+    container_name: emqx3
+    hostname: emqx3
+    restart: unless-stopped
+    networks: [emqx-network]
+    volumes:
+      - ./nodes/emqx3/data:/opt/emqx/data
+      - ./nodes/emqx3/log:/opt/emqx/log
+      - ./keys:/opt/emqx/certs:ro
+    env_file:
+      - ./env/common.env
+    environment:
+      - "EMQX_NAME=emqx"
+      - "EMQX_HOST=node3.emqx.io"
+      - "EMQX_CLUSTER_DISCOVERY_STRATEGY=static"
+      - "EMQX_CLUSTER_STATIC_SEEDS=[emqx@node1.emqx.io, emqx@node2.emqx.io, emqx@node3.emqx.io]"
+
+  
+    # ===== NGINX LOAD BALANCER =====
+  nginx:
+    image: nginx:stable
+    container_name: nginx
+    restart: unless-stopped
+    depends_on:
+      - emqx1
+      - emqx2
+      - emqx3
+    networks: [emqx-network]
+    ports:
+      - "1883:1883" # MQTT
+      - "8083:8083" # MQTT over WebSocket
+      - "80:80" # HTTP
+      - "18083:18083" # EMQX Dashboard
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+
+
+networks:
+  emqx-network:
+    driver: bridge

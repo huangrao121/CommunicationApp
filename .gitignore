@@ -1,0 +1,17 @@
+# 忽略 nodes/ 目录下的所有文件和文件夹
+emqx/nodes/
+
+# 忽略环境配置文件
+BackendService/.env
+emqx/env/
+
+# 忽略密钥文件
+BackendService/keys/
+emqx/keys/
+
+# 忽略系统文件
+.DS_Store
+emqx/.DS_Store
+
+# 忽略开发文档
+emqx/development.md
