@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/huangrao121/CommunicationApp/BackendService/internal/config/pkg"
 	"github.com/huangrao121/CommunicationApp/BackendService/internal/types"
 )
@@ -20,7 +21,7 @@ func NewUserHandler(userStore *UserStore) *UserHandler {
 }
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	var user types.User
+	var user types.Users
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -40,7 +41,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	acl := getACL(user.ID)
+	acl := getACL(user.ID.String())
 
 	mqttToken, err := pkg.GenerateJWKToken(&user, acl, os.Getenv("MQTT_PK_PATH"), 15*time.Minute)
 	if err != nil {
@@ -58,7 +59,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
-	var user types.User
+	var user types.Users
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -80,7 +81,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	acl := getACL(user.ID)
+	acl := getACL(user.ID.String())
 
 	mqttToken, err := pkg.GenerateJWKToken(&user, acl, os.Getenv("MQTT_PK_PATH"), 15*time.Minute)
 	if err != nil {
@@ -106,7 +107,7 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 	acl := getACL(userID.(string))
-	refreshToken, err := pkg.GenerateJWKToken(&types.User{ID: userID.(string), Username: userName.(string), Email: email.(string)}, acl, os.Getenv("PK_PATH"), time.Minute*15)
+	refreshToken, err := pkg.GenerateJWKToken(&types.Users{ID: userID.(uuid.UUID), Username: userName.(string), Email: email.(string)}, acl, os.Getenv("PK_PATH"), time.Minute*15)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

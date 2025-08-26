@@ -27,11 +27,33 @@ func InitDB() {
 		if result.Error != nil {
 			slog.Error("failed to create uuid extension", "error", result.Error)
 		}
-		joinTableErr := db.SetupJoinTable(&types.User{}, "Friendships", &types.Friendship{})
-		if joinTableErr != nil {
-			slog.Error("failed to setup join table for friendships", "error", joinTableErr)
-		}
-		migrateErr := db.AutoMigrate(&types.User{}, &types.OauthIdentity{})
+
+		// joinTableErr := db.SetupJoinTable(&types.Users{}, "Friends", &types.Friends{})
+		// if joinTableErr != nil {
+		// 	slog.Error("failed to setup join table for friendships", "error", joinTableErr)
+		// }
+
+		// conversationJoinTableErr := db.SetupJoinTable(&types.Conversations{}, "Participants", &types.ConversationParticipants{})
+		// if conversationJoinTableErr != nil {
+		// 	slog.Error("failed to setup join table for conversations", "error", conversationJoinTableErr)
+		// }
+
+		// groupJoinTableErr := db.SetupJoinTable(&types.Groups{}, "Members", &types.GroupMembers{})
+		// if groupJoinTableErr != nil {
+		// 	slog.Error("failed to setup join table for groups", "error", groupJoinTableErr)
+		// }
+
+		migrateErr := db.AutoMigrate(
+			&types.Users{},
+			&types.OauthIdentities{},
+			&types.Groups{},
+			&types.Conversations{},
+			&types.P2PMessages{},
+			&types.GroupMessages{},
+			&types.ConversationParticipants{},
+			&types.Friends{},
+			&types.GroupMembers{},
+		)
 		if migrateErr != nil {
 			slog.Error("failed to migrate database", "error", migrateErr)
 		}

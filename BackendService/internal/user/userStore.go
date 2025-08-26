@@ -13,12 +13,12 @@ func NewUserStore(db *gorm.DB) *UserStore {
 	return &UserStore{db: db}
 }
 
-func (s *UserStore) CreateUser(user *types.User) error {
+func (s *UserStore) CreateUser(user *types.Users) error {
 	return s.db.Create(user).Error
 }
 
-func (s *UserStore) GetUserByID(id string) (*types.User, error) {
-	var user types.User
+func (s *UserStore) GetUserByID(id string) (*types.Users, error) {
+	var user types.Users
 	if err := s.db.First(&user, "id = ?", id).Error; err != nil {
 		return nil, err
 	}

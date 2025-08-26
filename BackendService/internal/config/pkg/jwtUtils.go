@@ -28,11 +28,11 @@ type MQTTClaims struct {
 }
 
 // GenerateJWKToken generates a JWT token with the given kid, alg, and key
-func GenerateJWKToken(user *types.User, acl *[]types.ACL, path string, ttl time.Duration) (string, error) {
+func GenerateJWKToken(user *types.Users, acl *[]types.ACL, path string, ttl time.Duration) (string, error) {
 	var customClaims jwt.Claims
 	if acl == nil {
 		customClaims = &AppClaims{
-			ID:       user.ID,
+			ID:       user.ID.String(),
 			Username: user.Username,
 			Email:    user.Email,
 			RegisteredClaims: jwt.RegisteredClaims{
@@ -45,7 +45,7 @@ func GenerateJWKToken(user *types.User, acl *[]types.ACL, path string, ttl time.
 		}
 	} else {
 		customClaims = &MQTTClaims{
-			ID:       user.ID,
+			ID:       user.ID.String(),
 			Username: user.Username,
 			Email:    user.Email,
 			ACL:      *acl,
