@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/huangrao121/CommunicationApp/BackendService/internal/config/pkg"
+	"github.com/huangrao121/CommunicationApp/BackendService/config/pkg"
 	"github.com/huangrao121/CommunicationApp/BackendService/internal/types"
 )
 

@@ -22,3 +22,5 @@ development.md
 Consumer/config/config.yaml
 .DS_Store
 emqx/config/emqx.hocon
+
+Consumer/*

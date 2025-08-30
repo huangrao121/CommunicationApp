@@ -2,28 +2,32 @@ package main
 
 import (
 	"log/slog"
-	"os"
 
 	//"time"
 
 	//"github.com/google/uuid"
-	"github.com/huangrao121/CommunicationApp/BackendService/internal/config"
-	"github.com/huangrao121/CommunicationApp/BackendService/internal/config/logger"
+	"github.com/huangrao121/CommunicationApp/BackendService/config"
+	"github.com/huangrao121/CommunicationApp/BackendService/config/database"
+	"github.com/huangrao121/CommunicationApp/BackendService/config/logger"
 
-	//"github.com/huangrao121/CommunicationApp/BackendService/internal/config/pkg"
 	//"github.com/huangrao121/CommunicationApp/BackendService/internal/user"
 
 	"github.com/huangrao121/CommunicationApp/BackendService/internal/http"
-	"github.com/joho/godotenv"
 )
 
-func init() {
-	godotenv.Load("../../.env")
-}
-
 func main() {
-	config.InitDB()
-	logger.InitLogger("BackendService", os.Getenv("VERSION"), "dev", 0)
+	// 从config.yaml中加载配置
+	cfg, err := config.LoadConfig("../../")
+	if err != nil {
+		slog.Error("failed to load config", "error", err)
+		return
+	}
+	// 这个的配置来自env
+	logger.InitLogger()
+
+	// 初始化数据库
+	database.InitDB(cfg)
+
 	slog.Info("BackendService started")
 
 	// user := user.User{

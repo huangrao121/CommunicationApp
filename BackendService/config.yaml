@@ -1,0 +1,30 @@
+server:
+  host: localhost
+  port: 8080
+  readTimeout: 10s
+  environment: development
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: nxbsin60w5
+  dbname: CommunicateApp
+
+redis:
+  host: localhost
+  port: 6379
+  password: nxbsin60w5
+  db: 0
+
+kafka:
+  brokers:
+    - localhost:9092
+    - localhost:9093
+    - localhost:9094
+  topic:
+    p2pMessage: p2p_message
+    groupMessage: group_message
+    multiServerService: multi_server_service
+    messageInbox: message_inbox
+    conversation: conversation

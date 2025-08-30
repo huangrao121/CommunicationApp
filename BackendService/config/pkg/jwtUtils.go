@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/huangrao121/CommunicationApp/BackendService/internal/types"
 )
 
 type AppClaims struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	Email    string    `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -32,7 +33,7 @@ func GenerateJWKToken(user *types.Users, acl *[]types.ACL, path string, ttl time
 	var customClaims jwt.Claims
 	if acl == nil {
 		customClaims = &AppClaims{
-			ID:       user.ID.String(),
+			ID:       user.ID,
 			Username: user.Username,
 			Email:    user.Email,
 			RegisteredClaims: jwt.RegisteredClaims{

@@ -1,11 +1,11 @@
-package config
+package database
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 
-	"os"
-
+	"github.com/huangrao121/CommunicationApp/BackendService/config"
 	"github.com/huangrao121/CommunicationApp/BackendService/internal/types"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -16,9 +16,10 @@ var (
 	once sync.Once
 )
 
-func InitDB() {
+func InitDB(cfg *config.Config) {
 	once.Do(func() {
-		dsn := os.Getenv("DB_DSN")
+		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+			cfg.Database.Host, cfg.Database.Port, cfg.Database.User, cfg.Database.Password, cfg.Database.DBName)
 		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 		if err != nil {
 			slog.Error("failed to connect database", "error", err)
@@ -27,21 +28,6 @@ func InitDB() {
 		if result.Error != nil {
 			slog.Error("failed to create uuid extension", "error", result.Error)
 		}
-
-		// joinTableErr := db.SetupJoinTable(&types.Users{}, "Friends", &types.Friends{})
-		// if joinTableErr != nil {
-		// 	slog.Error("failed to setup join table for friendships", "error", joinTableErr)
-		// }
-
-		// conversationJoinTableErr := db.SetupJoinTable(&types.Conversations{}, "Participants", &types.ConversationParticipants{})
-		// if conversationJoinTableErr != nil {
-		// 	slog.Error("failed to setup join table for conversations", "error", conversationJoinTableErr)
-		// }
-
-		// groupJoinTableErr := db.SetupJoinTable(&types.Groups{}, "Members", &types.GroupMembers{})
-		// if groupJoinTableErr != nil {
-		// 	slog.Error("failed to setup join table for groups", "error", groupJoinTableErr)
-		// }
 
 		migrateErr := db.AutoMigrate(
 			&types.Users{},
@@ -61,9 +47,9 @@ func InitDB() {
 	})
 }
 
-func GetDB() *gorm.DB {
+func GetDB(cfg *config.Config) *gorm.DB {
 	if db == nil {
-		InitDB()
+		InitDB(cfg)
 	}
 	return db
 }

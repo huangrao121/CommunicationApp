@@ -24,6 +24,7 @@ type GroupMessages struct {
 	Content     string    `gorm:"not null;column:content"`
 	ContentType int       `gorm:"not null;column:content_type"`
 	GroupID     uuid.UUID `gorm:"not null;column:group_id;index"`
+	Group       Groups
 	CreatedAt   time.Time
 }
 
