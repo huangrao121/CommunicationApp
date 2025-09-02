@@ -25,7 +25,7 @@ func main() {
 	gatewayService := service.NewGatewayService("http://message-service:8002")
 
 	// WebSocket Hub
-	hub := websocket.NewHub(gatewayService)
+	hub := websocket.NewHub(gatewayService, cfg)
 
 	// 启动Hub
 	ctx := context.Background()

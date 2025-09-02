@@ -33,10 +33,14 @@ type DatabaseConfig struct {
 }
 
 type RedisConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Password string `yaml:"password"`
-	DB       int    `yaml:"db"`
+	ClusterMode    bool          `yaml:"clusterMode"`
+	ClusterAddrs   []string      `yaml:"clusterAddrs"`
+	Password       string        `yaml:"password"`
+	PoolSize       int           `yaml:"poolSize"`
+	MinIdleConns   int           `yaml:"minIdleConns"`
+	MaxIdleConns   int           `yaml:"maxIdleConns"`
+	MaxActiveConns int           `yaml:"maxActiveConns"`
+	IdleTimeout    time.Duration `yaml:"idleTimeout"`
 }
 
 type KafkaConfig struct {

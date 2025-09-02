@@ -3,6 +3,8 @@ emqx/nodes/
 
 # 忽略环境配置文件
 BackendService/.env
+BackendService/config.yaml
+BackendService/redisConfig.yaml
 emqx/env/
 
 # 忽略密钥文件

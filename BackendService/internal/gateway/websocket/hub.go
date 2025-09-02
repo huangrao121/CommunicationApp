@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/huangrao121/CommunicationApp/BackendService/config"
 )
 
 type Hub struct {
@@ -18,6 +20,7 @@ type Hub struct {
 	unregister     chan *Client
 	broadcast      chan []byte
 	userMessage    chan UserMessage
+	RedisManager   *RedisManager
 	messageService MessageServiceClient // gRPC客户端接口
 	mutex          sync.RWMutex
 }
@@ -30,6 +33,7 @@ type Client struct {
 	username string
 }
 
+// data里的内容是IncomingMessage，IncomingMessage里的data是SendP2PRequest
 type UserMessage struct {
 	UserID  uuid.UUID `json:"user_id"`
 	Type    string    `json:"type"`
@@ -81,18 +85,23 @@ var upgrader = websocket.Upgrader{
 	HandshakeTimeout: 45 * time.Second,
 }
 
-func NewHub(messageService MessageServiceClient) *Hub {
+func NewHub(messageService MessageServiceClient, cfg *config.Config) *Hub {
 	return &Hub{
-		clients:        make(map[uuid.UUID]*Client),
-		register:       make(chan *Client),
-		unregister:     make(chan *Client),
-		broadcast:      make(chan []byte),
-		userMessage:    make(chan UserMessage),
+		clients:     make(map[uuid.UUID]*Client),
+		register:    make(chan *Client),
+		unregister:  make(chan *Client),
+		broadcast:   make(chan []byte),
+		userMessage: make(chan UserMessage),
+		// 这个redisManager是用来管理用户位置的，每个节点都有一个redisManager，用来管理用户位置。后面那个是nodeID
+		RedisManager:   NewRedisManager(cfg, "1"),
 		messageService: messageService,
 	}
 }
 
 func (h *Hub) Run(ctx context.Context) {
+
+	go h.listenCrossServerMessage(ctx)
+	go h.listenGroupBoardcast(ctx)
 	for {
 		select {
 		case <-ctx.Done():
@@ -157,6 +166,24 @@ func (h *Hub) handleP2PMessage(ctx context.Context, senderID uuid.UUID, data jso
 	}
 	req.SenderID = senderID
 
+	// 如果接收者在本地，sendToLocalUser
+	location, err := h.RedisManager.GetUserLocation(ctx, req.ReceiverID.String())
+	if err != nil {
+		log.Printf("Error getting user location: %v", err)
+		return
+	}
+	if location == h.RedisManager.nodeID {
+		h.SendToUser(req.ReceiverID, OutgoingMessage{
+			Type:      "new_p2p_message",
+			Data:      data,
+			Timestamp: time.Now().Unix(),
+		})
+		return
+	} else {
+		// sendToCrossServer
+		h.PublishToTargetNode(ctx, req.ReceiverID, data)
+	}
+
 	// 调用Message Service
 	resp, err := h.messageService.SendP2PMessage(ctx, &req)
 	if err != nil {
@@ -186,7 +213,7 @@ func (h *Hub) handleGroupMessage(ctx context.Context, senderID uuid.UUID, data j
 		log.Printf("Error unmarshaling group message: %v", err)
 		return
 	}
-	req.SenderID = senderID
+	// publish to group broadcast
 
 	// 调用Message Service
 	//resp, err := h.messageService.SendGroupMessage(ctx, &req)
@@ -236,6 +263,15 @@ func (h *Hub) SendToUser(userID uuid.UUID, message OutgoingMessage) {
 	client.sendMessage(message)
 }
 
+func (h *Hub) PublishToTargetNode(ctx context.Context, userID uuid.UUID, data []byte) {
+	location, err := h.RedisManager.GetUserLocation(ctx, userID.String())
+	if err != nil {
+		log.Printf("Error getting user location: %v", err)
+		return
+	}
+	h.RedisManager.redisClusterClient.Publish(ctx, location, data)
+}
+
 func (h *Hub) broadcastToAll(message []byte) {
 	h.mutex.RLock()
 	for _, client := range h.clients {
@@ -247,6 +283,54 @@ func (h *Hub) broadcastToAll(message []byte) {
 		}
 	}
 	h.mutex.RUnlock()
+}
+
+func (h *Hub) listenCrossServerMessage(ctx context.Context) {
+	nodeID := h.RedisManager.GetNodeID()
+	// 订阅对应的nodeID的channel
+	channel := fmt.Sprintf("gateway_node:%s", nodeID)
+	ch := h.RedisManager.redisClusterClient.Subscribe(ctx, channel)
+	defer ch.Close()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg := <-ch.Channel():
+			var p2pMsg SendP2PRequest
+			if err := json.Unmarshal([]byte(msg.Payload), &p2pMsg); err != nil {
+				log.Printf("Error unmarshaling incoming message: %v", err)
+				continue
+			}
+			h.SendToUser(p2pMsg.SenderID, OutgoingMessage{
+				Type:      "new_p2p_message",
+				Data:      p2pMsg,
+				Timestamp: time.Now().Unix(),
+			})
+		}
+	}
+
+}
+
+func (h *Hub) listenGroupBoardcast(ctx context.Context) {
+	ch := h.RedisManager.redisClusterClient.Subscribe(ctx, "group_broadcast")
+	defer ch.Close()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg := <-ch.Channel():
+			var groupMsg SendGroupRequest
+			if err := json.Unmarshal([]byte(msg.Payload), &groupMsg); err != nil {
+				log.Printf("Error unmarshaling incoming message: %v", err)
+				continue
+			}
+			h.handleGroupBroadcast(groupMsg)
+		}
+	}
+}
+
+func (h *Hub) handleGroupBroadcast(groupMsg SendGroupRequest) {
+
 }
 
 func (h *Hub) sendErrorToUser(userID uuid.UUID, message string, err error) {

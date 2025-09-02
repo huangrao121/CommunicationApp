@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/huangrao121/CommunicationApp/BackendService/internal/gateway/websocket"
 )
 
@@ -92,4 +93,34 @@ func (s *GatewayService) SendGroupMessage(ctx context.Context, req *websocket.Se
 
 	messageResp.Success = true
 	return &messageResp, nil
+}
+
+// 添加获取群组成员的方法
+func (s *GatewayService) GetGroupMembers(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error) {
+	url := fmt.Sprintf("%s/api/v1/groups/%s/members", s.messageServiceURL, groupID)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get group members: status %d", resp.StatusCode)
+	}
+
+	var response struct {
+		Members []uuid.UUID `json:"members"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, err
+	}
+
+	return response.Members, nil
 }
